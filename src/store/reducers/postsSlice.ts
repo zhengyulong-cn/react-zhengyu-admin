@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
+import { createAsyncThunk, createSlice, createSelector, createEntityAdapter  } from "@reduxjs/toolkit"
 import type { RootState } from "../index"
 
 interface IPost {
@@ -6,49 +6,60 @@ interface IPost {
   title: string
   content: string
 }
+interface IState {
+  posts: Array<IPost>
+  status: 'idle' | 'loading' | 'succeeded' | 'failed'
+  error: any
+}
 
-const initialState: Array<IPost> = [
-  { id: '1', title: 'First Post!', content: '你好!'},
-  { id: '2', title: 'Second Post!', content: 'Hello World!'},
-]
+const initialState: IState = {
+  posts: [
+    { id: '1', title: 'First Post!', content: '你好!'},
+    { id: '2', title: 'Second Post!', content: 'Hello World!'},
+  ],
+  status: 'idle',
+  error: null,
+}
 
 const postsSlice = createSlice({
   name: 'posts',
   initialState,
   reducers: {
     postAdded(state, action) {
-      state.push(action.payload)
+      state.posts.push(action.payload)
     }
   },
   extraReducers(builder) {
-    builder.addCase(addPostAsyncOuter.pending, (state, action) => {
+    builder.addCase(addPostAsync.pending, (state, action) => {
       state.status = 'loading'
+    }).addCase(addPostAsync.fulfilled, (state, action) => {
+      state.status = 'succeeded'
+      state.posts = state.posts.concat(action.payload)
+    }).addCase(addPostAsync.rejected, (state, action) => {
+      state.status = 'failed'
+      state.error = action.error.message
     }).addCase(addPostAsyncOuter.fulfilled, (state, action) => {
       state.status = 'succeeded'
       state.posts = state.posts.concat(action.payload)
-    }).addCase(addPostAsyncOuter.rejected, (state, action) => {
-      state.status = 'failed'
-      state.error = action.error.message
     })
-  },
+  }
 })
 
 export const addPostAsync = createAsyncThunk(
   'posts/addPostAsync',
-  (post: IPost) => {
+  (post: IPost): Promise<Array<IPost>> => {
     return new Promise((resolve, reject) => {
       try {
         setTimeout(() => {
-          resolve({
-            test: 'addPostAsync函数测试',
-            post,
-          })
+          resolve([
+            { id: '101', title: '1 Post!', content: 'resolve thunk 101'},
+            { id: '102', title: '2 Post!', content: 'resolve thunk 102'},
+          ])
         }, 1000)
       } catch (error) {
-        reject({
-          test: 'reject error',
-          post,
-        })
+        reject([
+          { id: '103', title: '3 Post!', content: 'reject thunk 10３'},
+        ])
       }
     })
   }
@@ -56,26 +67,30 @@ export const addPostAsync = createAsyncThunk(
 
 export const addPostAsyncOuter = createAsyncThunk(
   'outer/addPostAsyncOuter',
-  (post: IPost) => {
+  (post: IPost): Promise<Array<IPost>> => {
     return new Promise((resolve, reject) => {
       try {
         setTimeout(() => {
-          resolve({
-            test: 'addPostAsync函数测试',
-            post,
-          })
+          resolve([
+            { id: '104', title: '4 Post! --- outer', content: 'resolve thunk 104'},
+            { id: '105', title: '5 Post! --- outer', content: 'resolve thunk 105'},
+          ])
         }, 1000)
       } catch (error) {
-        reject({
-          test: 'reject error',
-          post,
-        })
+        reject([
+          { id: '106', title: '6 Post! --- outer', content: 'resolve thunk 106'},
+        ])
       }
     })
   }
 )
 
-export const selectAllPosts = (state: RootState) => state.posts
+export const selectAllPosts = (state: RootState) => state.postStore.posts
+export const selectPostStatus = (state: RootState) => state.postStore.status
+export const selectPostsByUser = createSelector(
+  [selectAllPosts, (state, userId) => userId],
+  (posts, userId) => posts.filter(post => post.id === userId)
+)
 
 export const { postAdded } = postsSlice.actions
 

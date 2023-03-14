@@ -1,8 +1,9 @@
-import { useSelector } from "react-redux";
-import { selectAllPosts } from "../store/reducers/postsSlice";
+import { selectAllPosts, selectPostsByUser } from "../store/reducers/postsSlice";
+import { useAppSelector } from '../store/index'
 
 const PostsList = () => {
-  const posts = useSelector(selectAllPosts)
+  const posts = useAppSelector(selectAllPosts)
+  const postsForUser = useAppSelector(state => selectPostsByUser(state, '102'))
   return (
     <section>
       <p className="text-2xl font-bold">Posts</p>
@@ -12,6 +13,12 @@ const PostsList = () => {
           <p>{post.content}</p>
         </article>
       ))}
+      <div>
+        <p>选中的值：</p>
+        { postsForUser.map(post => (
+          <p key={post.id}>{post.title} - {post.content}</p>
+        ))}
+      </div>
     </section>
   )
 }
